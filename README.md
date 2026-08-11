@@ -7,6 +7,53 @@ An unofficial, local-first React tool for inspecting and transferring an eligibl
 
 This project is independent and is not affiliated with or endorsed by Streamflow or Solana.
 
+## Why This Exists
+
+This project was created to address a practical interface gap: a Streamflow position can be marked `transferableByRecipient` on-chain even when the interfaces available to its recipient do not expose a transfer action. It provides a transparent, local-first path to inspect eligibility, simulate the complete recipient change, and submit it through the current recipient's browser wallet.
+
+This is not a bypass. It cannot make a non-transferable position transferable, transfer only part of a position, or act without authorization from the current recipient wallet.
+
+## Initial Mainnet Case Study
+
+This project grew out of a mainnet case completed on 2026-08-11. It changed the recipient rights for two Streamflow lock positions representing `465,000,000` tokens. It did not unlock, withdraw, or transfer the SPL tokens between wallets: the tokens remained in their Streamflow escrows, the original sender fields remained unchanged, and only the recipient and recipient-token-account fields changed.
+
+- Mint: `FVGdJQVzAdKr8ZH7ahyhp4cvDszX3N8QYGSdzueopump`
+- Previous recipient and transaction signer: `5DoKeehPR6UeqmjSRvGKZ3S49xJce6XgPsULXFQPS3qv`
+- Destination and current recipient: `FTCuvRUmd3Q7MxZ5isoSVn4gABAFR6pV7996RwdNd9nr`
+- Streamflow program: `strmRqUCoQUgGUan5YhzUZa6KqdzwX5L6FpUxfmKg5m`
+- Aggregate reviewed: `690,000,000`; eligible and reassigned: `465,000,000`; ineligible and unchanged: `225,000,000`
+
+### Qualifying Positions
+
+The `75,000,000` token lock at contract `B3SLJwVYYLNvYTho2871ffLeXjipzumcLf4oJHPaWMJF` had `transferableByRecipient=true` and `transferableBySender=false`. Its recipient transfer finalized in slot `438536113` at `2026-08-11T04:14:53Z`, with a `5,000` lamport fee and no transaction error.
+
+- Transaction: `4tsEviwRmBdnXLbc6UbcYGsgxDD25AZsNoVdiE5sJc6uhydEwdvxeBwZBJqwFy43asMgpz8jxfYV3HbMfb1GcyYt` ([Solana Explorer](https://explorer.solana.com/tx/4tsEviwRmBdnXLbc6UbcYGsgxDD25AZsNoVdiE5sJc6uhydEwdvxeBwZBJqwFy43asMgpz8jxfYV3HbMfb1GcyYt))
+
+The `390,000,000` token lock at contract `242w1mxR2rq6Uoi9UV3pb7qg96Wt2BKM17EwMji5TwYQ` had the same flags. Its recipient transfer finalized in slot `438536312` at `2026-08-11T04:16:15Z`, also with a `5,000` lamport fee and no transaction error.
+
+- Transaction: `618bRtj3n4BEQjJccEbF31v8Phjf2Zx4bBWYSFHok4sAaVdsgcYy9xk96imqZWZ5Yxhz4S6vDquwYuMbxpvBS5CP` ([Solana Explorer](https://explorer.solana.com/tx/618bRtj3n4BEQjJccEbF31v8Phjf2Zx4bBWYSFHok4sAaVdsgcYy9xk96imqZWZ5Yxhz4S6vDquwYuMbxpvBS5CP))
+
+Both finalized transactions were signed only by the previous recipient, invoked Streamflow's `TransferRecipient` instruction, and left the escrow token balances unchanged.
+
+### Position That Did Not Qualify
+
+The `225,000,000` Team vesting position at contract `F62qBH5nJbFAqhVvhWWFgdGiXrigWr1BKKy51Sea1Cjq` had `transferableByRecipient=false` and `transferableBySender=false`. Its unsigned simulation returned `TransferNotAllowed` with Streamflow custom error `103`. No transfer transaction was signed or broadcast, and its recipient remains `5DoKeehPR6UeqmjSRvGKZ3S49xJce6XgPsULXFQPS3qv`.
+
+### How It Was Tested
+
+1. The three original contracts were decoded from mainnet and checked for the expected Streamflow program owner, account layout, mint, type, amount, authority, and transfer flags.
+2. Unsigned simulations against the original accounts predicted success for both eligible locks and error `103` for the ineligible vesting position.
+3. A disposable, randomly named mainnet token reproduced the three position types, schedules, and flags with scaled amounts. The two eligible replicas transferred successfully; the ineligible replica failed signed simulation with error `103` and was not broadcast. Raw readback confirmed that only the recipient fields changed.
+4. Each original transfer then passed a fresh destination-specific simulation, destination-control message signature, wallet-side transaction signature, signature-verifying simulation, immediate pre-broadcast account readback, explicit broadcast, finality confirmation, and finalized contract readback.
+5. The extracted generic application is covered by deterministic tests that never sign or broadcast, plus clean-install, production-build, browser, RPC-proxy, and recovery checks.
+
+The replica used source `JBxb1G45EoNxp1JjSht5rt6FmFMgV2vrufaYfyraF1DL`, destination `8Wn1gGtXcvGTKvS1XRibhpEggdZ4dNBrJnD561v265hv`, and mint `4ayGEcrc7g3DzyhLuxr8kB3LjfbovE64zGD7oNgyHeCr`. Its eligible replica contracts and finalized transfer transactions were:
+
+- Contract `Fs1Kk7uVnKGLpdfb25LMtJ5c2wxBRuEJY7gG6BaFq1Lj`; transaction `3yEhB4NabaDbCdNSSAt9z6LQJFNd8q2cdc8Yhjcm4m1JAZtBawba7QfZt8i5zsFndcZFJeGVvZnPawuKXuktKcUR` ([Solana Explorer](https://explorer.solana.com/tx/3yEhB4NabaDbCdNSSAt9z6LQJFNd8q2cdc8Yhjcm4m1JAZtBawba7QfZt8i5zsFndcZFJeGVvZnPawuKXuktKcUR))
+- Contract `HFTRoJZ4bNo463Xn7fNvK2zFaLJEpvfE7kAczmBm8mpp`; transaction `3RHn5Z6bqdYLCZ7JN9NbKgxDAvLejzGnhUZdZpyFBn1dSypZJa3uzAP3tEQFdKLnCDWgSPiAo1PwNxwtYn45CJ9y` ([Solana Explorer](https://explorer.solana.com/tx/3RHn5Z6bqdYLCZ7JN9NbKgxDAvLejzGnhUZdZpyFBn1dSypZJa3uzAP3tEQFdKLnCDWgSPiAo1PwNxwtYn45CJ9y))
+
+The ineligible replica contract `8bDtZKnTvLZxiqeksbSqFm4FrAKvnAZbHayiJksXPN8J` was never broadcast as a recipient transfer because its signed simulation returned error `103`.
+
 ## Scope
 
 The application is intentionally narrow. It:
