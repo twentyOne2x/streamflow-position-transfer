@@ -23,6 +23,8 @@ This project grew out of a mainnet case completed on 2026-08-11. It changed the 
 - Streamflow program: `strmRqUCoQUgGUan5YhzUZa6KqdzwX5L6FpUxfmKg5m`
 - Aggregate reviewed: `690,000,000`; eligible and reassigned: `465,000,000`; ineligible and unchanged: `225,000,000`
 
+A finalized mint-filtered scan found exactly these three active Streamflow v4 positions. All three remained open with `withdrawnAmount=0`, and their escrow balances still matched their full deposited amounts.
+
 ### Qualifying Positions
 
 The `75,000,000` token lock at contract `B3SLJwVYYLNvYTho2871ffLeXjipzumcLf4oJHPaWMJF` had `transferableByRecipient=true` and `transferableBySender=false`. Its recipient transfer finalized in slot `438536113` at `2026-08-11T04:14:53Z`, with a `5,000` lamport fee and no transaction error.
@@ -43,9 +45,11 @@ The `225,000,000` Team vesting position at contract `F62qBH5nJbFAqhVvhWWFgdGiXri
 
 1. The three original contracts were decoded from mainnet and checked for the expected Streamflow program owner, account layout, mint, type, amount, authority, and transfer flags.
 2. Unsigned simulations against the original accounts predicted success for both eligible locks and error `103` for the ineligible vesting position.
-3. A disposable, randomly named mainnet token reproduced the three position types, schedules, and flags with scaled amounts. The two eligible replicas transferred successfully; the ineligible replica failed signed simulation with error `103` and was not broadcast. Raw readback confirmed that only the recipient fields changed.
-4. Each original transfer then passed a fresh destination-specific simulation, destination-control message signature, wallet-side transaction signature, signature-verifying simulation, immediate pre-broadcast account readback, explicit broadcast, finality confirmation, and finalized contract readback.
-5. The extracted generic application is covered by deterministic tests that never sign or broadcast, plus clean-install, production-build, browser, RPC-proxy, and recovery checks.
+3. A devnet lifecycle test exercised both a transferable position and an error-`103` non-transferable control.
+4. A separate disposable one-token mainnet canary completed the same recipient transition in transaction `4gPpMTXAsJ4BGkLjHydKzpLYg8yEG7qcLyFdkYohyMRq65Lvcopcqkoufc6pD6k6mpgXXU3G96qCoN19tkPMQZy4` ([Solana Explorer](https://explorer.solana.com/tx/4gPpMTXAsJ4BGkLjHydKzpLYg8yEG7qcLyFdkYohyMRq65Lvcopcqkoufc6pD6k6mpgXXU3G96qCoN19tkPMQZy4)).
+5. A disposable, randomly named mainnet token then reproduced the three position types, schedules, and flags with scaled amounts. The two eligible replicas transferred successfully; the ineligible replica failed signed simulation with error `103` and was not broadcast. Raw readback confirmed that only the recipient fields changed.
+6. Each original transfer passed a fresh destination-specific simulation, destination-control message signature, wallet-side transaction signature, signature-verifying simulation, immediate pre-broadcast account readback, explicit broadcast, finality confirmation, and finalized contract readback.
+7. The extracted generic application is covered by deterministic tests that never sign or broadcast, plus clean-install, production-build, browser, RPC-proxy, and recovery checks.
 
 The replica used source `JBxb1G45EoNxp1JjSht5rt6FmFMgV2vrufaYfyraF1DL`, destination `8Wn1gGtXcvGTKvS1XRibhpEggdZ4dNBrJnD561v265hv`, and mint `4ayGEcrc7g3DzyhLuxr8kB3LjfbovE64zGD7oNgyHeCr`. Its eligible replica contracts and finalized transfer transactions were:
 
