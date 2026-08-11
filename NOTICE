@@ -1,0 +1,18 @@
+Streamflow Position Transfer
+Copyright 2026 Streamflow Position Transfer contributors
+
+This is an independent, unofficial project. It is not affiliated with,
+endorsed by, or sponsored by Streamflow, Solana, or their maintainers.
+
+This project depends on third-party software listed in package.json and the
+package lockfile. Each dependency remains subject to its own license and
+notice requirements. In particular, the Streamflow JavaScript SDK upstream
+repository at https://github.com/streamflow-finance/js-sdk identifies its
+license as GPL-3.0. Distribution of source or bundled software must comply
+with all applicable third-party terms.
+
+Product names and trademarks belong to their respective owners. Their use is
+for identification and interoperability only and does not imply endorsement.
+
+This notice is informational. The LICENSE file contains the terms for the
+project's original code and documentation.
